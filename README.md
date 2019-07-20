@@ -1,13 +1,9 @@
 # Cloudflare DNS over TLS Docker container
 
-*DNS caching server connected to Cloudflare 1.1.1.1 DNS over TLS (IPv4 and ~~IPv6~~) with DNSSEC, DNS rebinding protection, built-in Docker healthcheck and malicious IPs + hostnames blocking*
-
-**10 Nov 2018: The port binding is back to `53:53/udp` and the container runs without root privileges**
-**This is thanks to `setcap 'cap_net_bind_service=+ep' /usr/sbin/unbound` allowing Unbound to bind to well known ports**
+*DNS caching server connected to DNS over TLS (IPv4) servers with DNSSEC, DNS rebinding protection, built-in Docker healthcheck and malicious IPs + hostnames blocking*
 
 [![Cloudflare DNS over TLS Docker](https://github.com/qdm12/cloudflare-dns-server/raw/master/readme/title.png)](https://hub.docker.com/r/qmcgaw/cloudflare-dns-server)
 
-[![Build Status](https://travis-ci.org/qdm12/cloudflare-dns-server.svg?branch=master)](https://travis-ci.org/qdm12/cloudflare-dns-server)
 [![Docker Build Status](https://img.shields.io/docker/build/qmcgaw/cloudflare-dns-server.svg)](https://hub.docker.com/r/qmcgaw/cloudflare-dns-server)
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/qdm12/cloudflare-dns-server.svg)](https://github.com/qdm12/cloudflare-dns-server/commits)
@@ -21,18 +17,27 @@
 [![Image size](https://images.microbadger.com/badges/image/qmcgaw/cloudflare-dns-server.svg)](https://microbadger.com/images/qmcgaw/cloudflare-dns-server)
 [![Image version](https://images.microbadger.com/badges/version/qmcgaw/cloudflare-dns-server.svg)](https://microbadger.com/images/qmcgaw/cloudflare-dns-server)
 
+[![Donate PayPal](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://paypal.me/qdm12)
+
 | Image size | RAM usage | CPU usage |
 | --- | --- | --- |
-| 19.4MB | 13.2MB to 70MB | Low |
+| 26.9MB | 13.2MB to 70MB | Low |
 
-It is based on:
+It can be connected to one of all the DNS-over-TLS providers:
 
-- [Alpine 3.8](https://alpinelinux.org)
-- [Unbound 1.7.3](https://pkgs.alpinelinux.org/package/v3.8/main/x86_64/unbound)
-- Malicious hostnames list from [github.com/qdm12/malicious-hostnames-docker](https://github.com/qdm12/malicious-hostnames-docker)
-- Malicious IPs list from [github.com/qdm12/malicious-ips-docker](https://github.com/qdm12/malicious-ips-docker)
-- [bind-tools](https://pkgs.alpinelinux.org/package/v3.8/main/x86_64/bind-tools) for the healthcheck with `nslookup duckduckgo.com 127.0.0.1`
-- [libcap](https://pkgs.alpinelinux.org/package/v3.8/main/x86_64/libcap) to set low port bind capabilities to unbound so that the container runs without root
+- Google
+- Quad9
+- Quadrant
+- CleanBrowsing
+
+<details><summary>Click to show base components</summary><p>
+
+- [Alpine 3.10](https://alpinelinux.org)
+- [Unbound 1.9.1-r2](https://pkgs.alpinelinux.org/package/v3.10/main/x86_64/unbound)
+- [Files and lists built periodically](https://github.com/qdm12/updated/tree/master/files)
+- [bind-tools](https://pkgs.alpinelinux.org/package/v3.10/main/x86_64/bind-tools) for the healthcheck with `nslookup duckduckgo.com 127.0.0.1`
+
+</p></details>
 
 It also uses DNS rebinding protection and DNSSEC Validation:
 
@@ -44,24 +49,49 @@ Diagrams are shown for router and client-by-client configurations in the [**Conn
 
 ## Testing it
 
-```bash
-docker run -it --rm --name cloudflare-dns-tls -p 53:53/udp \
--e VERBOSITY=3 -e VERBOSITY_DETAILS=3 -e BLOCK_MALICIOUS=off \
-qmcgaw/cloudflare-dns-server
-```
+1. <details><summary>CLICK IF YOU HAVE AN ARM DEVICE</summary><p>
 
-- The `VERBOSITY` environment variable goes from 0 (no log) to 5 (full debug log) and defaults to 1
-- The `VERBOSITY_DETAILS` environment variable goes from 0 to 4 and defaults to 0 (higher means more details)
-- The `BLOCK_MALICIOUS` environment variable can be set to 'on' or 'off' and defaults to 'on' (note that it consumes about 50MB of additional RAM). It blocks malicious IP addresses and malicious hostnames from being resolved.
-- The `LISTENINGPORT`  environment variable sets the UDP port on which the Unbound DNS server should listen to (internally), and defaults to 53
+    - If you have a ARM 32 bit v6 architecture
 
-You can check the verbose output with:
+        ```sh
+        docker build -t qmcgaw/cloudflare-dns-server \
+        --build-arg BASE_IMAGE=arm32v6/alpine \
+        https://github.com/qdm12/cloudflare-dns-server.git
+        ```
 
-```bash
-docker logs -f cloudflare-dns-tls
-```
+    - If you have a ARM 32 bit v7 architecture
 
-See the [Connect clients to it](#connect-clients-to-it) section to finish testing.
+        ```sh
+        docker build -t qmcgaw/cloudflare-dns-server \
+        --build-arg BASE_IMAGE=arm32v7/alpine \
+        https://github.com/qdm12/cloudflare-dns-server.git
+        ```
+
+    - If you have a ARM 64 bit v8 architecture
+
+        ```sh
+        docker build -t qmcgaw/cloudflare-dns-server \
+        --build-arg BASE_IMAGE=arm64v8/alpine \
+        https://github.com/qdm12/cloudflare-dns-server.git
+        ```
+
+    </p></details>
+
+1. Run the container
+
+    ```bash
+    docker run -it --rm -p 53:53/udp -e VERBOSITY=3 -e VERBOSITY_DETAILS=3 qmcgaw/cloudflare-dns-server
+    ```
+
+    More environment variables are described in the [environment variables](#environment-variables) section.
+
+1. Check the log output
+
+    ```bash
+    docker logs cloudflare-dns-server
+    ```
+
+1. See the [Connect clients to it](#connect-clients-to-it) section to finish testing, and you can refer to the [Verify DNS connection](#verify-dns-connection) section if you want.
 
 ## Run it as a daemon
 
@@ -69,13 +99,25 @@ See the [Connect clients to it](#connect-clients-to-it) section to finish testin
 docker run -d -p 53:53/udp qmcgaw/cloudflare-dns-server
 ```
 
-
 or use [docker-compose.yml](https://github.com/qdm12/cloudflare-dns-server/blob/master/docker-compose.yml) with:
-
 
 ```bash
 docker-compose up -d
 ```
+
+More environment variables are described in the [environment variables](#environment-variables) section.
+
+## Environment variables
+
+| Environment variable | Default | Description |
+| --- | --- | --- |
+| `VERBOSITY` | `1` | From 0 (no log) to 5 (full debug log) |
+| `VERBOSITY_DETAILS` | `0` | From 0 to 4 and defaults to 0 (higher means more details) |
+| `BLOCK_MALICIOUS` | `on` | `on` or `off`. It blocks malicious IP addresses and malicious hostnames from being resolved. Note that it consumes about 50MB of additional RAM. |
+| `BLOCK_NSA` | `off` | `on` or `off`. It blocks NSA hostnames from being resolved. |
+| `UNBLOCK` | | comma separated list of hostnames to leave unblocked |
+| `LISTENINGPORT` | `53` | UDP port on which the Unbound DNS server should listen to (internally) |
+| `PROVIDER` | `cloudflare` | DNS-over-TLS provider. It can be: `google`, `quad9`, `quadrant`, `cleanbrowsing` |
 
 ## Connect clients to it
 
@@ -113,7 +155,7 @@ For *docker-compose.yml*:
 version: '3'
 services:
   test:
-    image: alpine
+    image: alpine:3.10
     network_mode: bridge
     dns:
       - 127.0.0.1
@@ -154,8 +196,7 @@ Follow the instructions at [https://support.apple.com/kb/PH25577](https://suppor
 
 #### Linux
 
-You probably know how to do that. Otherwise you can usually modify the first line of */etc/resolv.conf* by changing the IP address 
-of your DNS server.
+You probably know how to do that. Otherwise you can usually modify the first line of */etc/resolv.conf* by changing the IP address of your DNS server.
 
 #### Android
 
@@ -186,17 +227,12 @@ See [this](http://www.macinstruct.com/node/558)
 1. Launch the Docker container with:
 
     ```bash
-    docker run -it --rm -p 53:53/udp \
-    -v $(pwd)/include.conf:/etc/unbound/include.conf \
-    qmcgaw/cloudflare-dns-server
+    docker run -it --rm -p 53:53/udp -v $(pwd)/include.conf:/etc/unbound/include.conf  qmcgaw/cloudflare-dns-server
     ```
 
-### Build all the images yourself
+### Build the image yourself
 
 ```bash
-docker build -t qmcgaw/malicious-ips https://github.com/qdm12/malicious-ips-docker.git
-docker build -t qmcgaw/malicious-hostnames https://github.com/qdm12/malicious-hostnames-docker.git
-docker build -t qmcgaw/dns-rootanchor https://github.com/qdm12/dns-rootanchor-docker.git
 docker build -t qmcgaw/cloudflare-dns-server https://github.com/qdm12/cloudflare-dns-server.git
 ```
 
@@ -206,6 +242,13 @@ This container requires the following connections:
 
 - UDP 53 Inbound (only if used externally)
 - TCP 853 Outbound to 1.1.1.1 and 1.0.0.1
+
+### Verify DNS connection
+
+1. Verify that you use Cloudflare DNS servers: [https://www.dnsleaktest.com](https://www.dnsleaktest.com) with the Standard or Extended test
+1. Verify that DNS SEC is enabled: [https://en.internet.nl/connection](https://en.internet.nl/connection)
+
+Note that [https://1.1.1.1/help](https://1.1.1.1/help) does not work as the container is not a client to Cloudflare servers but a forwarder intermediary. Hence https://1.1.1.1/help does not detect a direct connection to them.
 
 ## TO DOs
 
