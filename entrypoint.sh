@@ -106,8 +106,8 @@ do
   printf "Unblocking hostname $hostname\n"
   sed -i "/$hostname/d" /etc/unbound/blocks-malicious.conf
 done
-rm /etc/unbound/root.key
-unbound-anchor
+[ ! -f /etc/unbound/root.key ] || rm /etc/unbound/root.key
+unbound-anchor -r /etc/unbound/root.hints -a /etc/unbound/root.key
 unbound -d $ARGS
 status=$?
 printf "\n =========================================\n"

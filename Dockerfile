@@ -18,7 +18,7 @@ COPY block_lists/ /tmp/
 RUN apk --update --no-cache --progress -q add ca-certificates unbound bind-tools libcap && \
     setcap 'cap_net_bind_service=+ep' /usr/sbin/unbound && \
     apk del libcap && \
-    rm -rf /var/cache/apk/* /etc/unbound/* /usr/sbin/unbound-anchor /usr/sbin/unbound-checkconf /usr/sbin/unbound-control /usr/sbin/unbound-control-setup /usr/sbin/unbound-host && \
+    rm -rf /var/cache/apk/* /etc/unbound/* && \
     adduser nonrootuser -D -H --uid 1000 && \
     wget -q http://www.internic.net/domain/named.root -O /etc/unbound/root.hints && \
     cd /tmp && \
