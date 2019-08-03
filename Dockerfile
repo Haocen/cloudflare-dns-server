@@ -14,7 +14,7 @@ ENV VERBOSITY=1 \
 ENTRYPOINT /etc/unbound/entrypoint.sh
 HEALTHCHECK --interval=5m --timeout=15s --start-period=5s --retries=1 \
     CMD LISTENINGPORT=${LISTENINGPORT:-53}; dig @127.0.0.1 +short +time=1 duckduckgo.com -p $LISTENINGPORT &> /dev/null; [ $? = 0 ] || exit 1
-COPY block_lists/* /tmp/
+COPY block_lists/ /tmp/
 RUN apk --update --no-cache --progress -q add ca-certificates unbound bind-tools libcap && \
     setcap 'cap_net_bind_service=+ep' /usr/sbin/unbound && \
     apk del libcap && \
@@ -22,6 +22,9 @@ RUN apk --update --no-cache --progress -q add ca-certificates unbound bind-tools
     adduser nonrootuser -D -H --uid 1000 && \
     wget -q http://www.internic.net/domain/named.root -O /etc/unbound/root.hints && \
     cd /tmp && \
+    wget -q https://raw.githubusercontent.com/qdm12/updated/master/files/malicious-hostnames.updated -O malicious-hostnames && \
+    wget -q https://raw.githubusercontent.com/qdm12/updated/master/files/nsa-hostnames.updated -O nsa-hostnames && \
+    wget -q https://raw.githubusercontent.com/qdm12/updated/master/files/malicious-ips.updated -O malicious-ips && \
     while read hostname; do echo "local-zone: \""$hostname"\" static" >> blocks-malicious.conf; done < malicious-hostnames && \
     while read ip; do echo "private-address: $ip" >> blocks-malicious.conf; done < malicious-ips && \
     tar -cjf /etc/unbound/blocks-malicious.bz2 blocks-malicious.conf && \
