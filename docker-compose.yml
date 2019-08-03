@@ -1,9 +1,9 @@
 version: '3'
 services:
-  cloudflare-dns-tls:
+  cloudflare-dns-server:
     build: .
-    image: qmcgaw/cloudflare-dns-server
-    container_name: cloudflare-dns-tls
+    image: haocen/cloudflare-dns-server
+    container_name: cloudflare-dns-server
     environment:
       - VERBOSITY=1
       - VERBOSITY_DETAILS=0
